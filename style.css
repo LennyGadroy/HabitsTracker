@@ -331,18 +331,6 @@ svg { display: block; }
 .counter-btn:hover { background: var(--accent-bg); color: var(--accent); }
 .counter-val { flex: 1; text-align: center; font-weight: 700; font-size: 1rem; color: var(--text); }
 
-.shower-btns { display: flex; gap: 6px; margin-top: 10px; }
-.shower-btn {
-  flex: 1; height: 36px; border-radius: 8px;
-  font-size: 0.8rem; font-weight: 700;
-  border: 2px solid var(--border);
-  color: var(--text-2);
-  transition: all 0.15s;
-}
-.shower-btn.active-cold { border-color: #60A5FA; background: rgba(96,165,250,0.1); color: #3B82F6; }
-.shower-btn.active-lk   { border-color: #FBBF24; background: rgba(251,191,36,0.1); color: #D97706; }
-.shower-btn.active-hot  { border-color: #F97316; background: rgba(249,115,22,0.1); color: #EA580C; }
-
 .week-day-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);

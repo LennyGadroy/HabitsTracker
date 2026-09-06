@@ -6,24 +6,13 @@ const HABITS = [
   {id:'running',  name:'Running',           emoji:'🏃', type:'counter', color:'#F97316', freq:'5 days per week', weekdayOnly:false, step:1, goal:5, max:15, unit:'km'},
   {id:'setp',     name:'Setps',             emoji:'👣', type:'counter', color:'#34D399', freq:'Everyday',        weekdayOnly:false, step:1000, goal:10000, max:20000, unit:'steps'},
   {id:'drink',    name:'Drink Water',       emoji:'💧', type:'drink',   color:'#38BDF8', freq:'Everyday',        weekdayOnly:false},
-  {id:'fruits',   name:'Fruits & Veggies',  emoji:'🥦', type:'counter', color:'#86EFAC', freq:'Everyday',        weekdayOnly:false, step:1, goal:3, max:10},
-  {id:'clean',    name:'Clean',             emoji:'🫧', type:'counter', color:'#A3E635', freq:'Everyday',        weekdayOnly:false, step:1, goal:2, max:3},
-  {id:'shower',   name:'Shower',            emoji:'🚿', type:'shower',  color:'#67E8F9', freq:'Everyday',        weekdayOnly:false},
   {id:'read',     name:'Read',              emoji:'📚', type:'good',    color:'#A78BFA', freq:'Everyday',        weekdayOnly:false, optional:true},
   {id:'cleaning', name:'Cleaning',          emoji:'🧹', type:'weekly',  color:'#4ADE80', freq:'Once a week',     weekdayOnly:false, optional:true},
-  {id:'phoneoob', name:'Phone out of bed',  emoji:'📵', type:'good',    color:'#C084FC', freq:'Everyday',        weekdayOnly:false, optional:true},
-  {id:'nosugar',  name:'No extra Sugar',    emoji:'🍬', type:'bad',     color:'#F9A8D4', freq:'Everyday',        weekdayOnly:false},
-  {id:'nogaming', name:'No Gaming',         emoji:'🎮', type:'bad',     color:'#FB923C', freq:'Everyday',        weekdayOnly:false},
-  {id:'noscroll', name:'No Scroll',         emoji:'📱', type:'bad',     color:'#F87171', freq:'Everyday',        weekdayOnly:false},
-  {id:'nofilms',  name:'No Films',          emoji:'🎬', type:'bad',     color:'#F43F5E', freq:'Everyday',        weekdayOnly:false},
 ];
 
 const DRINK_GOAL = 2000;
 const DRINK_STEP = 250;
 const DRINK_MAX  = 5000;
-
-const PORTION_GOAL = 5;
-const PORTION_MAX  = 10;
 
 const LEVEL_THRESHOLDS = [0,100,250,500,800,1200,1700,2400,3200,4200];
 const LEVEL_NAMES = ['Novice','Apprentice','Practitioner','Devotee','Disciplined','Focused','Master','Grandmaster','Legend','Transcendent'];
@@ -64,10 +53,6 @@ const isDayActive = (habit, dateObj) => {
 
 function getDrinkMl(k) { const v=DB.habits['drink'].logs[k]; return typeof v==='number'?v:v==='done'?DRINK_GOAL:0; }
 function isDrinkDone(k) { return getDrinkMl(k)>=DRINK_GOAL; }
-function getPortions(k) { const v=DB.habits['fruits']?.logs[k]; return typeof v==='number'?v:0; }
-function isPortionDone(k) { return getPortions(k)>=PORTION_GOAL; }
-function getShowerState(k) { return DB.habits['shower'].logs[k]||null; }
-function isShowerDone(k) { const s=getShowerState(k); return s==='cold'||s==='lukewarm'; }
 function isBadFail(id,k) { return DB.habits[id].logs[k]==='fail'; }
 function getCounterVal(id,k) { const v=DB.habits[id].logs[k]; return typeof v==='number'?v:0; }
 function isCounterDone(habit,k) { return getCounterVal(habit.id,k)>=habit.goal; }
@@ -76,9 +61,7 @@ function isWeeklyDoneForWeek(id,wk) { const logs=DB.habits[id].logs; const s=par
 
 function getHabitDayValue(habit,k,dateObj) {
   if(habit.type==='drink')   return isDrinkDone(k)?1:0;
-  if(habit.type==='portion') return isPortionDone(k)?1:getPortions(k)/PORTION_GOAL;
   if(habit.type==='counter') return isCounterDone(habit,k)?1:getCounterVal(habit.id,k)/habit.goal;
-  if(habit.type==='shower')  { const s=getShowerState(k); return s==='cold'?1:s==='lukewarm'?0.5:0; }
   if(habit.type==='weekly')  { const wk=getWeekMonday(dateObj||parseDate(k)); return isWeeklyDoneForWeek(habit.id,wk)?1:0; }
   if(habit.type==='bad')     return isBadFail(habit.id,k)?0:1;
   return DB.habits[habit.id].logs[k]==='done'?1:0;
@@ -183,7 +166,7 @@ function calcStreak(habit) {
     for(let i=0;i<730;i++){ const k=fmtDate(d); if(k<createdAt) break; if(!isDayActive(habit,d)){d=addDays(d,-1);continue;} if(isBadFail(habit.id,k)) break; if(k<=todayKey) streak++; d=addDays(d,-1); }
     return {current:streak,longest:streak};
   }
-  const logDone=k=>{ if(habit.type==='drink') return isDrinkDone(k); if(habit.type==='portion') return isPortionDone(k); if(habit.type==='counter') return isCounterDone(habit,k); if(habit.type==='shower') return isShowerDone(k); return logs[k]==='done'; };
+  const logDone=k=>{ if(habit.type==='drink') return isDrinkDone(k); if(habit.type==='counter') return isCounterDone(habit,k); return logs[k]==='done'; };
   const todayDone=logDone(todayKey); const todayObj=new Date(); const todayInactive=!isDayActive(habit,todayObj); const todayEffDone=todayDone||todayInactive;
   let d=new Date(); if(!todayEffDone) d=addDays(d,-1);
   let streak=0;
@@ -207,18 +190,13 @@ const ACHIEVEMENTS = [
   { id:'centurion',   emoji:'⚔️', name:'Centurion',        desc:'Accumulate 100 XP',                      check:()=>(DB.xp||0)>=100 },
   { id:'on_fire',     emoji:'🔥', name:'On Fire',          desc:'Reach Level 5',                          check:()=>calcLevel(DB.xp)>=5 },
   { id:'bookworm',    emoji:'📖', name:'Bookworm',         desc:'14-day reading streak',                  check:()=>{const h=HABITS.find(x=>x.id==='read');return h&&calcStreak(h).current>=14;} },
-  { id:'digital',     emoji:'📵', name:'Digital Detox',    desc:'30 days without scrolling',              check:()=>{const h=HABITS.find(x=>x.id==='noscroll');return h&&calcStreak(h).current>=30;} },
   { id:'ironwill',    emoji:'💪', name:'Iron Will',        desc:'20 gym sessions this month',             check:()=>checkGymMonth() },
   { id:'consistent',  emoji:'🌅', name:'Consistent',       desc:'30+ day streak on any habit',            check:()=>HABITS.some(h=>calcStreak(h).current>=30) },
-  { id:'ice_king',    emoji:'🧊', name:'Ice King',         desc:'14 cold showers in a row',               check:()=>{let s=0,d=new Date();for(let i=0;i<730;i++){const k=fmtDate(d);if(k<DB.createdAt)break;if(DB.habits['shower'].logs[k]==='cold')s++;else break;d=addDays(d,-1);}return s>=14;} },
   { id:'night_tmd',   emoji:'🌙', name:'Night Owl Tamed',  desc:'14-day sleep streak',                    check:()=>{const h=HABITS.find(x=>x.id==='sleep');return h&&calcStreak(h).current>=14;} },
-  { id:'plant_pwr',   emoji:'🥗', name:'Plant Power',      desc:'14-day fruits & veggies streak',         check:()=>{const h=HABITS.find(x=>x.id==='fruits');return h&&calcStreak(h).current>=14;} },
   { id:'xp_500',      emoji:'💎', name:'XP Hoarder',       desc:'Accumulate 500 XP',                      check:()=>(DB.xp||0)>=500 },
   { id:'dedicated',   emoji:'🎯', name:'Dedicated',        desc:'60+ day streak on any habit',            check:()=>HABITS.some(h=>calcStreak(h).current>=60) },
   { id:'perfectist',  emoji:'💯', name:'Perfectionist',    desc:'5 Perfect Days',                         check:()=>(DB.perfectDaysClaimed||[]).length>=5 },
-  { id:'sugarfree',   emoji:'🚫', name:'Sugar Free',       desc:'30 days no extra sugar',                 check:()=>{const h=HABITS.find(x=>x.id==='nosugar');return h&&calcStreak(h).current>=30;} },
   { id:'hydration',   emoji:'🌊', name:'Hydration Master', desc:'30-day water goal streak',               check:()=>{const h=HABITS.find(x=>x.id==='drink');return h&&calcStreak(h).current>=30;} },
-  { id:'phonefree',   emoji:'🧘', name:'Phone Free',       desc:'21-day phone-out-of-bed streak',         check:()=>{const h=HABITS.find(x=>x.id==='phoneoob');return h&&calcStreak(h).current>=21;} },
   { id:'transcend',   emoji:'🌌', name:'Transcendent',     desc:'Reach the maximum level',                check:()=>calcLevel(DB.xp)>=LEVEL_THRESHOLDS.length },
   { id:'walker',      emoji:'👣', name:'Walker',           desc:'10 000 steps streak for 7 days',         check:()=>{const h=HABITS.find(x=>x.id==='setp');return h&&calcStreak(h).current>=7;} },
   { id:'marathoner',  emoji:'🏅', name:'Marathoner',       desc:'10 000 steps streak for 30 days',        check:()=>{const h=HABITS.find(x=>x.id==='setp');return h&&calcStreak(h).current>=30;} },
@@ -259,9 +237,7 @@ function checkDailyPenalties() {}
 function toggleHabit(id) {
   const habit=HABITS.find(h=>h.id===id); const t=today();
   if(habit.type==='drink')   { addDrink();     return; }
-  if(habit.type==='portion') { addPortion();   return; }
   if(habit.type==='counter') { addCounter(id); return; }
-  if(habit.type==='shower')  { cycleShower();  return; }
   if(habit.type==='weekly') {
     const completing=DB.habits[id].logs[t]!=='done';
     if(completing) DB.habits[id].logs[t]='done'; else delete DB.habits[id].logs[t];
@@ -300,20 +276,6 @@ function removeDrink() {
   else{DB.habits['drink'].logs[t]=next; playSound('undo');}
   saveData(); renderActivePage();
 }
-function addPortion() {
-  const t=today(); const cur=getPortions(t); if(cur>=PORTION_MAX) return;
-  const next=cur+1;
-  DB.habits['fruits'].logs[t]=next;
-  if(next>=PORTION_GOAL&&cur<PORTION_GOAL){playSound('done');showToast('🥦 Portion goal reached! +10 XP');giveXP(10);}
-  saveData(); checkAchievements(); renderActivePage();
-}
-function removePortion() {
-  const t=today(); const cur=getPortions(t); if(cur<=0) return;
-  const next=cur-1;
-  if(next===0){delete DB.habits['fruits'].logs[t];}
-  else{DB.habits['fruits'].logs[t]=next;}
-  playSound('undo'); saveData(); renderActivePage();
-}
 function addCounter(id) {
   const habit=HABITS.find(h=>h.id===id); const t=today(); const cur=getCounterVal(id,t);
   if(cur>=habit.max) return;
@@ -330,22 +292,6 @@ function removeCounter(id) {
   else{DB.habits[id].logs[t]=next;}
   playSound('undo'); saveData(); checkAchievements(); renderActivePage();
 }
-function setShower(state) {
-  const t=today(); const cur=getShowerState(t)||'';
-  if(cur===state){
-    delete DB.habits['shower'].logs[t]; playSound('undo');
-  } else {
-    const wasDone=cur==='cold'||cur==='lukewarm';
-    DB.habits['shower'].logs[t]=state;
-    const isDone=state==='cold'||state==='lukewarm';
-    if(isDone){
-      playSound('done');
-      if(state==='cold'&&cur!=='cold'){showToast('🧊 Cold shower! +10 XP');giveXP(10);}
-    }
-  }
-  saveData(); checkAchievements(); renderActivePage();
-}
-
 let _confParticles=[];
 function launchConfetti() {
   const canvas=document.getElementById('confettiCanvas');
@@ -438,15 +384,8 @@ function buildTodaySubLabel(habit,t,todayDate) {
   if(habit.type==='drink') {
     const ml=getDrinkMl(t); return `${ml}ml / ${DRINK_GOAL}ml${streak>0?` · 🔥 ${streak}d`:''}`;
   }
-  if(habit.type==='portion') {
-    const p=getPortions(t); return `${p} / ${PORTION_GOAL} portions${streak>0?` · 🔥 ${streak}d`:''}`;
-  }
   if(habit.type==='counter') {
     const v=getCounterVal(habit.id,t); const u=habit.unit?` ${habit.unit}`:''; return `${v}${u} / ${habit.goal}${u}${streak>0?` · 🔥 ${streak}d`:''}`;
-  }
-  if(habit.type==='shower') {
-    const s=getShowerState(t); const lbl=s?`${s.charAt(0).toUpperCase()+s.slice(1)} shower`:'Not logged';
-    return `${lbl}${streak>0?` · 🔥 ${streak}d`:''}`;
   }
   if(habit.type==='bad') {
     const fail=isBadFail(habit.id,t);
@@ -473,24 +412,6 @@ function buildTodayControl(habit,t,todayDate) {
       </div>`}
     </div>`;
   }
-  if(habit.type==='portion') {
-    const p=getPortions(t); const pct=Math.min(100,Math.round((p/PORTION_GOAL)*100));
-    const atMax=p>=PORTION_MAX;
-    return `<div style="width:100%">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span style="font-size:.75rem;color:var(--text-2)">${p} / ${PORTION_GOAL} portions</span>
-        <button class="habit-toggle-btn${p>=PORTION_GOAL?' done':''}" style="${p>=PORTION_GOAL?`background:${habit.color}`:'border-color:'+habit.color}" onclick="addPortion()">
-          <svg class="check-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor"><polyline points="4 10 8 14 16 6"/></svg>
-        </button>
-      </div>
-      <div class="drink-bar-track"><div class="drink-bar-fill" style="width:${pct}%;background:${habit.color}"></div></div>
-      <div class="counter-row" style="width:100%;justify-content:space-between;margin-top:8px">
-        <button class="counter-btn" onclick="removePortion()">−</button>
-        <span class="counter-val">${p} / ${PORTION_GOAL}</span>
-        ${atMax?'<div style="width:34px"></div>':`<button class="counter-btn" onclick="addPortion()" style="${p>=PORTION_GOAL?`background:${habit.color+'30'};color:${habit.color}`:''}">+</button>`}
-      </div>
-    </div>`;
-  }
   if(habit.type==='counter') {
     const v=getCounterVal(habit.id,t); const done=v>=habit.goal; const atMax=v>=habit.max;
     const u=habit.unit?` ${habit.unit}`:'';
@@ -498,14 +419,6 @@ function buildTodayControl(habit,t,todayDate) {
       <button class="counter-btn" onclick="removeCounter('${habit.id}')">−</button>
       <span class="counter-val">${v}${u} / ${habit.goal}${u}</span>
       ${atMax?'<div style="width:34px"></div>':`<button class="counter-btn" onclick="addCounter('${habit.id}')" style="${done?`background:${habit.color+'30'};color:${habit.color}`:''}">+</button>`}
-    </div>`;
-  }
-  if(habit.type==='shower') {
-    const s=getShowerState(t)||'';
-    return `<div class="shower-btns" style="width:100%;margin-top:0">
-      <button class="shower-btn${s==='cold'?' active-cold':''}" onclick="setShower('cold')">🧊 Cold</button>
-      <button class="shower-btn${s==='lukewarm'?' active-lk':''}" onclick="setShower('lukewarm')">🌡 Lukewarm</button>
-      <button class="shower-btn${s==='hot'?' active-hot':''}" onclick="setShower('hot')">🔥 Hot</button>
     </div>`;
   }
   if(habit.type==='bad') {
